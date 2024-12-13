@@ -1,0 +1,207 @@
+services:
+  twiy-manager:
+    container_name: manager
+    build:
+      context: ./TWIYManager
+      dockerfile: Dockerfile
+    ports:
+      - "8081:8081"
+    networks:
+      - twiy-network
+    depends_on:
+      - rabbitmq
+
+  twiy-producer:
+    container_name: producer
+    build:
+      context: ./TWIYProducer
+      dockerfile: Dockerfile
+    ports:
+      - "8082:8082"
+    networks:
+      - twiy-network
+    depends_on:
+      - rabbitmq
+
+  node1:
+    container_name: node1
+    build:
+      context: ./TWIYDatabaseNode
+      dockerfile: Dockerfile
+    ports:
+      - "8100:8100"
+      - "8105:8105/udp"
+    networks:
+      - twiy-network
+    environment:
+      - HOSTNAME=node1
+      - PORT=8100
+      - UDP_PORT=8105
+    depends_on:
+      - postgres_db
+
+  node2:
+    container_name: node2
+    build:
+      context: ./TWIYDatabaseNode
+      dockerfile: Dockerfile
+    ports:
+      - "8101:8101"
+      - "8106:8106/udp"
+    networks:
+      - twiy-network
+    environment:
+      - HOSTNAME=node2
+      - PORT=8101
+      - UDP_PORT=8106
+    depends_on:
+      - postgres_db
+
+  node3:
+    container_name: node3
+    build:
+      context: ./TWIYDatabaseNode
+      dockerfile: Dockerfile
+    ports:
+      - "8102:8102"
+      - "8107:8107/udp"
+    networks:
+      - twiy-network
+    environment:
+      - HOSTNAME=node3
+      - PORT=8102
+      - UDP_PORT=8107
+    depends_on:
+      - postgres_db
+
+  node4:
+    container_name: node4
+    build:
+      context: ./TWIYDatabaseNode
+      dockerfile: Dockerfile
+    ports:
+      - "8103:8103"
+      - "8108:8108/udp"
+    networks:
+      - twiy-network
+    environment:
+      - HOSTNAME=node4
+      - PORT=8103
+      - UDP_PORT=8108
+    depends_on:
+      - postgres_db
+
+  node5:
+    container_name: node5
+    build:
+      context: ./TWIYDatabaseNode
+      dockerfile: Dockerfile
+    ports:
+      - "8104:8104"
+      - "8109:8109/udp"
+    networks:
+      - twiy-network
+    environment:
+      - HOSTNAME=node5
+      - PORT=8104
+      - UDP_PORT=8109
+    depends_on:
+      - postgres_db
+
+  postgres_db:
+    image: postgres:latest
+    container_name: postgres_db
+    environment:
+      - POSTGRES_USER=twiy
+      - POSTGRES_PASSWORD=twiy
+      - POSTGRES_DB=twiy
+    volumes:
+      - ./config/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - "5432:5432"
+    networks:
+      - twiy-network
+    restart: always
+
+  rabbitmq:
+    image: "rabbitmq:management"
+    container_name: rabbitmq
+    command: >
+      sh -c "
+      rabbitmq-plugins enable --offline rabbitmq_prometheus &&
+      rabbitmq-server"
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+      - "15692:15692"
+    environment:
+      - RABBITMQ_DEFAULT_USER=twiy
+      - RABBITMQ_DEFAULT_PASS=twiy
+      - RABBITMQ_NODENAME=rabbit@rabbitmq
+      - RABBITMQ_PROMETHEUS_RETENTION_POLICY=1h
+    volumes:
+      - ./config/rabbitmq/rabbit.conf:/etc/rabbitmq/rabbitmq.conf:ro
+      - ./config/logs/rabbitmq:/var/log/rabbitmq
+    networks:
+      - twiy-network
+    restart: always
+
+  prometheus:
+    image: prom/prometheus
+    container_name: prometheus
+    command:
+      - "--log.level=warn"
+      - "--config.file=/etc/prometheus/prometheus.yml"
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./config/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    networks:
+      - twiy-network
+
+  grafana:
+    image: grafana/grafana
+    container_name: grafana
+    user: "472:472"
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=twiy
+      - GF_SECURITY_ADMIN_PASSWORD=twiy
+      - GF_LOG_LEVEL=warn
+      - GF_DATABASE_TYPE=sqlite3
+      - GF_DATABASE_PATH=/var/lib/grafana/grafana.db
+    volumes:
+      - ./config/grafana/provisioning:/etc/grafana/provisioning
+      - ./config/grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards
+      - ./config/grafana/provisioning/datasources:/etc/grafana/provisioning/datasources
+      - ./config/grafana/provisioning/plugins:/etc/grafana/provisioning/plugins
+      - ./config/grafana/provisioning/alerting:/etc/grafana/provisioning/alerting
+      - ./config/grafana/plugins-bundled:/usr/share/grafana/plugins-bundled
+      - grafana-storage:/var/lib/grafana
+    networks:
+      - twiy-network
+
+  node-exporter:
+    image: prom/node-exporter:latest
+    container_name: node-exporter
+    command:
+      - "--no-collector.hwmon"
+      - "--log.level=warn"
+    ports:
+      - "9100:9100"
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+      - /run/udev:/run/udev:ro
+    networks:
+      - twiy-network
+    restart: always
+
+volumes:
+  grafana-storage:
+
+networks:
+  twiy-network:
+    driver: bridge

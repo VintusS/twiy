@@ -1,0 +1,9 @@
+apiVersion: 1
+contactPoints:
+  - orgId: 1
+    name: default-receiver
+    receivers:
+      - uid: default-receiver
+        type: email
+        settings:
+          addresses: "<danthevip@gmail.com>"

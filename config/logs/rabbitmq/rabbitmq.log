@@ -1,0 +1,1 @@
+2024-12-12 20:43:45.086648+00:00 [error] <0.1439.0> closing AMQP 1.0 connection (172.18.0.1:54074 -> 172.18.0.3:5672, duration: '775ms'): RabbitMQ requires SASL security layer (expected protocol ID 3, but client sent protocol ID 2)

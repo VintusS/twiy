@@ -1,0 +1,9 @@
+apiVersion: 1
+policies:
+  - orgId: 1
+    receiver: "default-receiver"
+    group_by: ['alertname']
+    routes:
+      - receiver: "default-receiver"
+        group_by: ['alertname']
+    repeat_interval: "1h"
